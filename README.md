@@ -27,3 +27,7 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 一个强大且轻量的自动化脚本工具，用于**批量提取** GitHub 项目的核心元数据（Star、Fork、简介等），并**智能深度扫描**项目的 README 文件，精准统计其中包含的展示大图和 GIF 动图数量。
 
 非常适合开发者、研究人员或产品经理用于批量筛选有详尽 UI 截图或演示的开源项目。
+
+使用方法：
+1、python源码运行
+2、下载release中 github_tool_v1.0.exe 与 url-list.txt 放在同一文件夹下，双击即可运行。
