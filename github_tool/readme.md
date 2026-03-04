@@ -71,4 +71,4 @@
 普通的正则提取往往会漏掉大量的图片，本项目采用了多层级的验证机制：
 1. **HTML/Markdown 混合解析**：暴力提取所有潜在的多媒体链接。
 2. **CDN 链接还原**：自动将 `github.com/.../blob/...` 的网页预览链接转换为 `raw.githubusercontent.com` 的直链。
-3. **轻量级网络探测**：使用 `requests.get(stream=True)` 仅拉取目标链接的 HTTP Header，不下载图片实体，在保证极快速度的同时，准确获取 `Content-Type` 和 `Content-Length`，实现精准查图。
+3. **轻量级网络探测**：使用 `requests.get(stream=True)` 仅拉取目标链接的 HTTP Header，不下载图片实体，在保证极快速度的同时，准确获取 `Content-Type` 和 `Content-Length`，实现精准查图。1
