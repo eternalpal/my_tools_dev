@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIF 编辑器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream:    #f5f0e8;
+  --cream2:   #ede7d9;
+  --cream3:   #ddd5c8;
+  --ink:      #1c1814;
+  --ink2:     #3d3630;
+  --ink3:     #7a6f65;
+  --orange:   #d4622a;
+  --green:    #3a7d5e;
+  --red:      #c0392b;
+  --r:        14px;
+  --r-sm:     9px;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 52px 20px 72px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 44px;
+  animation: fadeUp 0.5s ease both;
+}
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.logo-icon {
+  width: 48px; height: 48px;
+  background: var(--orange);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 18px rgba(212,98,42,0.35);
+}
+h1 {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.subtitle {
+  font-size: 15px;
+  color: var(--ink3);
+  font-weight: 300;
+}
+
+.main {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: 0 2px 14px rgba(28,24,20,0.09);
+  padding: 28px 30px;
+  animation: fadeUp 0.5s ease both;
+}
+.card:nth-child(2) { animation-delay: 0.07s; }
+.card:nth-child(3) { animation-delay: 0.14s; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.card-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.ci-orange { background: #fdeee6; }
+.ci-blue   { background: #e8eef8; }
+.ci-green  { background: #e5f3ec; }
+
+.card-title { font-size: 17px; font-weight: 600; line-height: 1.2; }
+.card-sub   { font-size: 13px; color: var(--ink3); font-weight: 300; margin-top: 2px; }
+
+/* Drop zone */
+#dropzone {
+  border: 2px dashed var(--cream3);
+  border-radius: var(--r-sm);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--cream);
+}
+#dropzone:hover, #dropzone.drag-over {
+  border-color: var(--orange);
+  background: #fef6f1;
+}
+#dropzone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.drop-icon { font-size: 38px; margin-bottom: 12px; }
+.drop-text { font-size: 16px; color: var(--ink2); font-weight: 500; margin-bottom: 4px; }
+.drop-hint { font-size: 13px; color: var(--ink3); }
+
+#file-loaded { display: none; margin-top: 18px; }
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--cream);
+  border-radius: var(--r-sm);
+}
+#preview-thumb {
+  width: 68px; height: 68px;
+  object-fit: contain;
+  border-radius: 7px;
+  background: var(--cream2);
+  flex-shrink: 0;
+}
+.file-meta { flex: 1; min-width: 0; }
+.file-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-stats { font-size: 13px; color: var(--ink3); margin-top: 3px; }
+.file-change { font-size: 13px; color: var(--orange); cursor: pointer; text-decoration: underline; white-space: nowrap; }
+
+/* Section dividers */
+.ctrl-section { margin-bottom: 26px; }
+.ctrl-section:last-child { margin-bottom: 0; }
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--cream2); }
+
+.ctrl-grid { display: grid; gap: 14px; }
+.col2 { grid-template-columns: 1fr 1fr; }
+.col1 { grid-template-columns: 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label { font-size: 14px; color: var(--ink2); font-weight: 400; }
+
+input[type="number"], select {
+  -webkit-appearance: none; appearance: none;
+  background: var(--cream);
+  border: 1.5px solid var(--cream3);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  padding: 11px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a6f65' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+input[type="number"]:focus, select:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(212,98,42,0.10);
+}
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.5; }
+
+/* Range */
+.range-wrap { display: flex; flex-direction: column; gap: 10px; }
+.range-header { display: flex; justify-content: space-between; align-items: center; }
+.range-header label { font-size: 14px; color: var(--ink2); }
+.range-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--orange);
+  background: #fdeee6;
+  padding: 3px 12px;
+  border-radius: 20px;
+  min-width: 48px;
+  text-align: center;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%; height: 5px;
+  border-radius: 3px;
+  background: var(--cream2);
+  outline: none;
+  cursor: pointer;
+  padding: 0; border: none; box-shadow: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 2px 8px rgba(212,98,42,0.38);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: none;
+}
+.range-ticks {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--ink3);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0 2px;
+}
+
+/* Command box */
+.cmd-box {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: var(--cream);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--orange);
+}
+.cmd-label { font-size: 11px; color: var(--ink3); margin-bottom: 5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cmd-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ink2);
+  word-break: break-all;
+  line-height: 1.8;
+}
+.cmd-text .hl { color: var(--orange); font-weight: 500; }
+
+/* Process button */
+#process-btn {
+  width: 100%;
+  padding: 17px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(212,98,42,0.35);
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  animation: fadeUp 0.5s ease 0.2s both;
+}
+#process-btn:hover:not(:disabled) { opacity: 0.90; transform: translateY(-2px); box-shadow: 0 7px 24px rgba(212,98,42,0.40); }
+#process-btn:active:not(:disabled) { transform: translateY(0); }
+#process-btn:disabled { opacity: 0.38; cursor: not-allowed; box-shadow: none; }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+#process-btn.loading .spinner { display: block; }
+
+/* Status */
+#status {
+  display: none;
+  padding: 15px 18px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-weight: 500;
+}
+#status.info    { background: #fef3ec; color: #b8521f; border: 1.5px solid #f5cdb4; }
+#status.success { background: #e8f5ee; color: #2e6b4e; border: 1.5px solid #a5d4b8; }
+#status.error   { background: #fdeceb; color: #a93228; border: 1.5px solid #f2b4b0; }
+
+/* Result */
+#result-card { display: none; animation: fadeUp 0.4s ease both; }
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.compare-box {
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1.5px solid var(--cream2);
+}
+.compare-box img {
+  width: 100%; height: 155px;
+  object-fit: contain;
+  background: var(--cream);
+  display: block;
+}
+.compare-label {
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  background: var(--cream);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  padding: 16px 14px;
+  background: var(--cream);
+  border-radius: var(--r-sm);
+  text-align: center;
+}
+.stat-val {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.sv-green  { color: var(--green); }
+.sv-orange { color: var(--orange); }
+.stat-label { font-size: 11px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; }
+
+#download-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 4px 14px rgba(58,125,94,0.28);
+}
+#download-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎞</div>
+    <h1>GIF 编辑器</h1>
+  </div>
+  <p class="subtitle">调整大小、帧数、分辨率 · 纯浏览器运行，不上传服务器</p>
+</header>
+
+<div class="main">
+
+  <!-- 上传 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-orange">📂</div>
+      <div>
+        <div class="card-title">选择 GIF</div>
+        <div class="card-sub">拖拽文件或点击上传</div>
+      </div>
+    </div>
+    <div id="dropzone">
+      <input type="file" id="file-input" accept=".gif,image/gif">
+      <div class="drop-icon">🖼️</div>
+      <div class="drop-text">拖拽文件到此，或点击选择</div>
+      <div class="drop-hint">仅支持 .gif 格式</div>
+    </div>
+    <div id="file-loaded">
+      <div class="file-row">
+        <img id="preview-thumb" src="" alt="">
+        <div class="file-meta">
+          <div class="file-name" id="file-name">—</div>
+          <div class="file-stats" id="file-stats">—</div>
+        </div>
+        <span class="file-change" id="file-change">更换文件</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 参数 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ci-blue">⚙️</div>
+      <div>
+        <div class="card-title">编辑参数</div>
+        <div class="card-sub">调整后实时预览命令</div>
+      </div>
+    </div>
+
+    <div class="ctrl-section">
+      <div class="section-label">文件大小压缩</div>
+      <div class="ctrl-grid col1">
+        <div class="range-wrap">
+          <div class="range-header">
+            <label>有损压缩强度（lossy）</label>
+            <span class="range-badge" id="lossy-val">0</span>
+          </div>
+          <input type="range" id="lossy" min="0" max="200" value="0">
+          <div class="range-ticks"><span>0 无损</span><span>30–60 推荐</span><span>200 最强</span></div>
+        </div>
+        <div class="ctrl-grid col2">
+          <div class="field">
+            <label>优化等级</label>
+            <select id="optlevel">
+              <option value="">不优化</option>
+              <option value="-O1" selected>-O1 快速</option>
+              <option value="-O2">-O2 标准</option>
+              <option value="-O3">-O3 最强（较慢）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>最大颜色数</label>
+            <select id="colors">
+              <option value="">保持原色（256）</option>
+              <option value="128">128 色</option>
+              <option value="64">64 色</option>
+              <option value="32">32 色</option>
+              <option value="16">16 色</option>
+              <option value="8">8 色</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-section">
+      <div class="section-label">画面尺寸</div>
+      <div class="ctrl-grid col2">
+        <div class="field">
+          <label>宽度（px）</label>
+          <input type="number" id="width" placeholder="留空 = 保持" min="1" max="4096">
+        </div>
+        <div class="field">
+          <label>高度（px）</label>
+          <input type="number" id="height" placeholder="留空 = 保持" min="1" max="4096">
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-section">
+      <div class="section-label">帧数控制</div>
+      <div class="ctrl-grid col2">
+        <div class="field">
+          <label>起始帧</label>
+          <input type="number" id="frame-start" placeholder="0（第一帧）" min="0">
+        </div>
+        <div class="field">
+          <label>结束帧</label>
+          <input type="number" id="frame-end" placeholder="留空 = 最后帧" min="0">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>抽帧间隔</label>
+          <select id="frame-step">
+            <option value="1">保留全部帧</option>
+            <option value="2">每 2 帧取 1（帧数减半）</option>
+            <option value="3">每 3 帧取 1（减至 1/3）</option>
+            <option value="4">每 4 帧取 1（减至 1/4）</option>
+            <option value="5">每 5 帧取 1（减至 1/5）</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="cmd-box">
+      <div class="cmd-label">Gifsicle 命令预览</div>
+      <div class="cmd-text" id="cmd-text">请先上传 GIF 文件</div>
+    </div>
+  </div>
+
+  <button id="process-btn" disabled>
+    <div class="spinner"></div>
+    <span class="btn-text">✨ 开始处理</span>
+  </button>
+
+  <div id="status"></div>
+
+  <!-- 结果 -->
+  <div class="card" id="result-card">
+    <div class="card-header">
+      <div class="card-icon ci-green">✅</div>
+      <div>
+        <div class="card-title">处理完成</div>
+        <div class="card-sub" id="result-sub">—</div>
+      </div>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-box">
+        <img id="before-img" src="" alt="原图">
+        <div class="compare-label">原图</div>
+      </div>
+      <div class="compare-box">
+        <img id="after-img" src="" alt="结果">
+        <div class="compare-label">结果</div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-before">—</div>
+        <div class="stat-label">原始大小</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-after">—</div>
+        <div class="stat-label">结果大小</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val sv-green" id="stat-ratio">—</div>
+        <div class="stat-label">压缩率</div>
+      </div>
+    </div>
+    <button id="download-btn">⬇ 下载 GIF</button>
+  </div>
+
+</div>
+
+<script type="module">
+import gifsicle from 'https://cdn.jsdelivr.net/npm/gifsicle-wasm-browser/dist/gifsicle.min.js';
+
+let currentFile = null, resultFile = null, origFrames = 0, origURL = null;
+
+const $ = id => document.getElementById(id);
+const fileInput = $('file-input'), dropzone = $('dropzone');
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+async function countFrames(file) {
+  const d = new Uint8Array(await file.arrayBuffer());
+  let n = 0;
+  for (let i = 0; i < d.length - 2; i++)
+    if (d[i]===0x21 && d[i+1]===0xF9 && d[i+2]===0x04) n++;
+  return Math.max(n, 1);
+}
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'image/gif') loadFile(f);
+  else showStatus('请选择 .gif 格式文件', 'error');
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+$('file-change').addEventListener('click', () => fileInput.click());
+
+async function loadFile(file) {
+  currentFile = file;
+  origFrames  = await countFrames(file);
+  origURL     = URL.createObjectURL(file);
+
+  $('preview-thumb').src = origURL;
+  $('file-name').textContent = file.name;
+  $('file-stats').textContent = `${fmtSize(file.size)} · ${origFrames} 帧`;
+  $('frame-end').placeholder = String(origFrames - 1);
+
+  dropzone.style.display = 'none';
+  $('file-loaded').style.display = 'block';
+  $('process-btn').disabled = false;
+  $('result-card').style.display = 'none';
+  $('status').style.display = 'none';
+  updateCmd();
+}
+
+function buildCmd() {
+  const w  = $('width').value.trim(), h = $('height').value.trim();
+  const opt = $('optlevel').value, col = $('colors').value;
+  const lv  = parseInt($('lossy').value);
+  const fs  = $('frame-start').value.trim(), fe = $('frame-end').value.trim();
+  const step = parseInt($('frame-step').value);
+  let parts = [];
+
+  if (opt) parts.push(opt);
+  if (lv > 0) parts.push(`--lossy=${lv}`);
+  if (col) parts.push(`--colors ${col}`);
+  if (w || h) parts.push(`--resize ${w||'_'}x${h||'_'}`);
+
+  let frameStr = '';
+  if (step > 1 && origFrames > 1) {
+    const s = parseInt(fs)||0, e = fe!==''?parseInt(fe):origFrames-1;
+    const arr = [];
+    for (let i=s; i<=e; i+=step) arr.push(`#${i}`);
+    frameStr = arr.join(' ');
+  } else if (fs!==''||fe!=='') {
+    frameStr = `#${fs||'0'}-${fe!==''?fe:origFrames-1}`;
+  }
+
+  return `${parts.join(' ')} ${frameStr?`1.gif ${frameStr}`:'1.gif'} -o /out/out.gif`.replace(/\s+/g,' ').trim();
+}
+
+function updateCmd() {
+  if (!currentFile) return;
+  const cmd = buildCmd();
+  $('cmd-text').innerHTML = `<span class="hl">gifsicle</span> ${cmd}`;
+}
+
+$('lossy').addEventListener('input', () => { $('lossy-val').textContent = $('lossy').value; updateCmd(); });
+['optlevel','colors','width','height','frame-start','frame-end','frame-step'].forEach(id => {
+  $(id).addEventListener('input', updateCmd);
+  $(id).addEventListener('change', updateCmd);
+});
+
+function showStatus(msg, type='info') {
+  const el = $('status');
+  el.style.display = 'block';
+  el.className = type;
+  el.textContent = msg;
+}
+
+$('process-btn').addEventListener('click', async () => {
+  if (!currentFile) return;
+  const btn = $('process-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.querySelector('.btn-text').textContent = '处理中…';
+  $('result-card').style.display = 'none';
+  showStatus('正在处理，请稍候…', 'info');
+
+  try {
+    const outputs = await gifsicle.run({
+      input: [{ file: currentFile, name: '1.gif' }],
+      command: [buildCmd()],
+    });
+    if (!outputs?.length) throw new Error('未生成输出文件');
+    resultFile = outputs[0];
+
+    const afterURL  = URL.createObjectURL(resultFile);
+    const newFrames = await countFrames(resultFile);
+    const ratio     = (1 - resultFile.size / currentFile.size) * 100;
+
+    $('before-img').src = origURL;
+    $('after-img').src  = afterURL;
+    $('stat-before').textContent = fmtSize(currentFile.size);
+    $('stat-after').textContent  = fmtSize(resultFile.size);
+    const rv = $('stat-ratio');
+    rv.textContent = (ratio >= 0 ? '-' : '+') + Math.abs(ratio).toFixed(1) + '%';
+    rv.className   = 'stat-val ' + (ratio >= 0 ? 'sv-green' : 'sv-orange');
+    $('result-sub').textContent = `${origFrames} 帧 → ${newFrames} 帧  ·  ${fmtSize(currentFile.size)} → ${fmtSize(resultFile.size)}`;
+
+    $('result-card').style.display = 'block';
+    $('status').style.display = 'none';
+  } catch(e) {
+    showStatus('处理失败：' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.querySelector('.btn-text').textContent = '✨ 开始处理';
+  }
+});
+
+$('download-btn').addEventListener('click', () => {
+  if (!resultFile) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(resultFile);
+  a.download = 'output.gif';
+  a.click();
+});
+</script>
+</body>
+</html>

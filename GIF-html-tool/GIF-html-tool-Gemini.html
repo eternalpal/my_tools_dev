@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF 抽帧压缩工具 (完美运行版)</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #f8fafc; --surface: #ffffff; --text: #334155; --border: #e2e8f0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 40px 20px; display: flex; justify-content: center; }
+        
+        .app-container { width: 100%; max-width: 600px; background: var(--surface); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; }
+        
+        h1 { margin: 0 0 20px 0; font-size: 20px; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+        h1::before { content: '✨'; font-size: 24px; }
+
+        .control-group { margin-bottom: 20px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* 文件上传区 */
+        .file-drop { border: 2px dashed var(--border); border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; background: #fdfdfd; }
+        .file-drop:hover { border-color: var(--primary); background: #f0fdfa; }
+        .file-drop input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .file-info { margin-top: 10px; font-size: 14px; color: var(--primary); font-weight: bold; display: none; }
+
+        /* 输入框样式 */
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box; }
+        input[type="number"]:focus, select:focus { border-color: var(--primary); }
+
+        /* 按钮 */
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        /* 结果面板 */
+        .result-panel { margin-top: 25px; border-top: 1px dashed var(--border); padding-top: 20px; display: none; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #f1f5f9; padding: 10px; border-radius: 6px; font-size: 13px; }
+        .stat-box b { display: block; font-size: 15px; color: #0f172a; margin-top: 4px; }
+        .preview-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
+        
+        .success-msg { color: #10b981; font-weight: bold; text-align: center; margin-bottom: 10px; font-size: 14px; }
+        .download-btn { display: block; text-align: center; background: #10b981; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-weight: bold; }
+
+        .log-box { margin-top: 20px; background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 12px; height: 100px; overflow-y: auto; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>GIF 极致压缩 & 抽帧</h1>
+
+    <!-- 1. 文件选择 -->
+    <div class="control-group">
+        <div class="file-drop" id="dropZone">
+            <input type="file" id="fileInput" accept="image/gif">
+            <span id="dropText">点击或拖拽 GIF 文件到这里</span>
+            <div id="fileInfo" class="file-info"></div>
+        </div>
+    </div>
+
+    <!-- 2. 参数设置 -->
+    <div class="control-group input-row">
+        <div>
+            <label>抽帧策略 (减少帧数)</label>
+            <select id="frameStep">
+                <option value="1">不抽帧 (保持原样)</option>
+                <option value="2" selected>1/2 (减半)</option>
+                <option value="3">1/3 (保留 33%)</option>
+                <option value="4">1/4 (保留 25%)</option>
+                <option value="5">1/5 (保留 20%)</option>
+            </select>
+        </div>
+        <div>
+            <label>有损压缩 (0-200)</label>
+            <input type="number" id="lossy" value="80" placeholder="推荐 30-100">
+        </div>
+    </div>
+
+    <div class="control-group input-row">
+        <div>
+            <label>宽度 (px)</label>
+            <input type="number" id="width" placeholder="留空保持原尺寸" value="300">
+        </div>
+        <div>
+            <label>优化等级</label>
+            <select id="optLevel">
+                <option value="-O1">快速 (-O1)</option>
+                <option value="-O2">标准 (-O2)</option>
+                <option value="-O3" selected>极致 (-O3)</option>
+            </select>
+        </div>
+    </div>
+
+    <button id="processBtn" disabled>开始处理</button>
+
+    <!-- 日志显示 (调试用) -->
+    <div id="logBox" class="log-box"></div>
+
+    <!-- 3. 结果展示 -->
+    <div id="resultPanel" class="result-panel">
+        <div class="success-msg">🎉 处理成功！</div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">原始体积 <b id="oldSize">-</b></div>
+            <div class="stat-box">处理后体积 <b id="newSize" style="color:#10b981">-</b></div>
+            <div class="stat-box">原始帧数 <b id="oldFrames">-</b></div>
+            <div class="stat-box">处理后帧数 <b id="newFrames" style="color:#10b981">-</b></div>
+        </div>
+
+        <img id="resultImg" class="preview-img">
+        <a id="downloadBtn" class="download-btn" download="optimized.gif">下载处理后的 GIF</a>
+    </div>
+</div>
+
+<script type="module">
+    // 引入库
+    import gifsicle from 'https://cdn.jsdelivr.net/npm/gifsicle-wasm-browser/dist/gifsicle.min.js';
+
+    // UI 元素
+    const fileInput = document.getElementById('fileInput');
+    const dropText = document.getElementById('dropText');
+    const fileInfo = document.getElementById('fileInfo');
+    const processBtn = document.getElementById('processBtn');
+    const resultPanel = document.getElementById('resultPanel');
+    const logBox = document.getElementById('logBox');
+
+    let currentFile = null;
+    let originalFrameCount = 0;
+
+    // 工具函数：格式化大小
+    function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+        return (bytes/1024/1024).toFixed(2) + ' MB';
+    }
+
+    // 工具函数：读取 GIF 帧数 (扫描二进制头)
+    async function getFrameCount(file) {
+        const buffer = await file.arrayBuffer();
+        const data = new Uint8Array(buffer);
+        let count = 0;
+        // 扫描 Graphics Control Extension (0x21 0xF9)
+        for (let i = 0; i < data.length - 2; i++) {
+            if (data[i] === 0x21 && data[i+1] === 0xF9 && data[i+2] === 0x04) {
+                count++;
+            }
+        }
+        return count || 1;
+    }
+
+    // 日志输出
+    function log(msg) {
+        logBox.style.display = 'block';
+        logBox.innerText += `> ${msg}\n`;
+        console.log(msg);
+    }
+
+    // 文件加载处理
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        currentFile = file;
+        dropText.style.display = 'none';
+        fileInfo.style.display = 'block';
+        fileInfo.innerText = "正在分析文件...";
+        processBtn.disabled = true;
+
+        originalFrameCount = await getFrameCount(file);
+        
+        fileInfo.innerHTML = `已选中: ${file.name}<br>大小: ${fmtSize(file.size)} | 帧数: ${originalFrameCount}`;
+        processBtn.disabled = false;
+        resultPanel.style.display = 'none';
+        logBox.innerText = '';
+    });
+
+    // 核心处理逻辑
+    processBtn.addEventListener('click', async () => {
+        if (!currentFile) return;
+
+        processBtn.disabled = true;
+        processBtn.innerText = "处理中...";
+        
+        try {
+            // 1. 获取用户参数
+            const step = parseInt(document.getElementById('frameStep').value);
+            const width = document.getElementById('width').value;
+            const lossy = document.getElementById('lossy').value;
+            const opt = document.getElementById('optLevel').value;
+
+            // 2. 构造命令 (学习自你的 FILE 1 (2).txt 逻辑)
+            // 关键点 A: 所有的参数先 push 进去
+            let args = [];
+            
+            // 优化参数
+            if (opt) args.push(opt);
+            if (lossy) args.push(`--lossy=${lossy}`);
+            
+            // 尺寸参数
+            if (width) args.push(`--resize ${width}x_`);
+
+            // 关键点 B: 文件名强制定义为 1.gif
+            let inputPart = '1.gif';
+
+            // 关键点 C: 手动计算要保留的帧 (Explicit Frame Selection)
+            // 不依赖 Gifsicle 的 step 语法，直接告诉它要 #0 #2 #4 ...
+            if (step > 1) {
+                let framesToKeep = [];
+                for (let i = 0; i < originalFrameCount; i += step) {
+                    framesToKeep.push(`#${i}`);
+                }
+                // 拼接到文件名后面: "1.gif #0 #2 #4"
+                inputPart += ' ' + framesToKeep.join(' ');
+                
+                log(`抽帧模式: 每 ${step} 帧取 1 帧，将保留 ${framesToKeep.length} 帧`);
+            }
+
+            // 拼接完整命令字符串
+            const commandString = `${args.join(' ')} ${inputPart} -o /out/out.gif`;
+            
+            log("执行命令: " + commandString);
+
+            // 3. 调用 WASM
+            // 注意：这里 command 传入的是一个包含单字符串的数组
+            const resultFiles = await gifsicle.run({
+                input: [{ file: currentFile, name: '1.gif' }], // 强制重命名为 1.gif
+                command: [commandString]
+            });
+
+            if (!resultFiles || resultFiles.length === 0) {
+                throw new Error("处理失败，未生成文件");
+            }
+
+            // 4. 处理结果
+            const outBlob = resultFiles[0];
+            const outUrl = URL.createObjectURL(outBlob);
+            const newFrames = await getFrameCount(outBlob);
+
+            // 更新 UI
+            document.getElementById('oldSize').innerText = fmtSize(currentFile.size);
+            document.getElementById('newSize').innerText = fmtSize(outBlob.size);
+            document.getElementById('oldFrames').innerText = originalFrameCount;
+            document.getElementById('newFrames').innerText = newFrames;
+            
+            document.getElementById('resultImg').src = outUrl;
+            document.getElementById('downloadBtn').href = outUrl;
+
+            resultPanel.style.display = 'block';
+            log("处理完成！");
+
+        } catch (e) {
+            alert("错误: " + e.message);
+            log("ERROR: " + e.message);
+        } finally {
+            processBtn.disabled = false;
+            processBtn.innerText = "开始处理";
+        }
+    });
+</script>
+
+</body>
+</html>
