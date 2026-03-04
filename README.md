@@ -9,7 +9,11 @@
 
 GIF-html-tool-claude.html - claude sonnet4.6
 
+[GIF-html-tool-claude.html](GIF-html-tool/GIF-html-tool-claude.html)
+
 GIF-html-tool-Gemini.html - Gemini 3.0
+
+[GIF-html-tool-Gemini.html](GIF-html-tool/GIF-html-tool-Gemini.html)
 
 下面html文件后即可使用。
 
@@ -23,6 +27,8 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 如果装了 Python：在当前文件夹打开终端，输入 python -m http.server 即可。
 
 ## Github tool
+
+[Github tool](github_tool/)
 
 一个强大且轻量的自动化脚本工具，用于**批量提取** GitHub 项目的核心元数据（Star、Fork、简介等），并**智能深度扫描**项目的 README 文件，精准统计其中包含的展示大图和 GIF 动图数量。
 
