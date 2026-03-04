@@ -21,3 +21,9 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 如果有 VS Code：装一个叫 Live Server 的插件，右键这个 HTML 文件选择 Open with Live Server 即可完美运行。
 如果装了 Node.js：在当前文件夹打开终端，输入 npx serve 即可。
 如果装了 Python：在当前文件夹打开终端，输入 python -m http.server 即可。
+
+## Github tool
+
+一个强大且轻量的自动化脚本工具，用于**批量提取** GitHub 项目的核心元数据（Star、Fork、简介等），并**智能深度扫描**项目的 README 文件，精准统计其中包含的展示大图和 GIF 动图数量。
+
+非常适合开发者、研究人员或产品经理用于批量筛选有详尽 UI 截图或演示的开源项目。
