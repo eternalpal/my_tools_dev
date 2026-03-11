@@ -1,0 +1,4 @@
+requests
+akshare
+yfinance
+pandas  # AkShare 依赖 pandas

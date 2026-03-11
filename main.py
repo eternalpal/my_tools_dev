@@ -1,77 +1,73 @@
 import requests
-import datetime
 import os
 import json
+import datetime
+import yfinance as yf
+import akshare as ak
 
-def get_bitcoin_price():
-    """
-    多数据源备份获取价格：依次尝试 币安、Coinbase、Kraken
-    """
-    sources = [
-        {
-            "name": "Binance",
-            "url": "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-            "parse": lambda d: round(float(d["price"]), 2)
-        },
-        {
-            "name": "Coinbase",
-            "url": "https://api.coinbase.com/v2/prices/BTC-USD/spot",
-            "parse": lambda d: round(float(d["data"]["amount"]), 2)
-        },
-        {
-            "name": "Kraken",
-            "url": "https://api.kraken.com/0/public/Ticker?pair=XXBTZUSD",
-            "parse": lambda d: round(float(d["result"]["XXBTZUSD"]["c"][0]), 2)
-        }
-    ]
+def get_crypto():
+    """获取 ETH 价格"""
+    url = "https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT"
+    res = requests.get(url).json()
+    return f"ETH: ${round(float(res['price']), 2)}"
 
-    errors = []
-    for source in sources:
-        try:
-            print(f"正在尝试从 {source['name']} 获取价格...")
-            response = requests.get(source['url'], timeout=10)
-            response.raise_for_status() # 如果返回 403 等错误会抛出异常
-            data = response.json()
-            price = source['parse'](data)
-            print(f"✅ 成功从 {source['name']} 获取价格: {price}")
-            return price, source['name']
-        except Exception as e:
-            error_msg = f"{source['name']} 失败: {e}"
-            print(f"❌ {error_msg}")
-            errors.append(error_msg)
-    
-    # 如果全部失败，抛出异常
-    raise Exception(f"所有接口均不可用: {'; '.join(errors)}")
+def get_commodities():
+    """获取白银和原油价格 (Yahoo Finance)"""
+    # SI=F 是白银, CL=F 是原油
+    data = yf.download(["SI=F", "CL=F"], period="1d", interval="1m")
+    silver = round(data['Close']['SI=F'].iloc[-1], 3)
+    oil = round(data['Close']['CL=F'].iloc[-1], 2)
+    return f"白银: ${silver} | 原油: ${oil}"
 
-def send_to_feishu(message):
+def get_a_shares():
+    """获取 A 股指数 (AkShare)"""
+    # 获取实时行情
+    df = ak.stock_zh_index_spot() 
+    # 筛选我们需要的部分指数
+    target_indices = {
+        "000905": "中证500",
+        "399006": "创业板指",
+        "000688": "科创50"
+    }
+    result = []
+    for code, name in target_indices.items():
+        row = df[df['代码'].str.contains(code)]
+        if not row.empty:
+            price = row['最新价'].values[0]
+            change = row['涨跌额'].values[0]
+            result.append(f"{name}: {price} ({change})")
+    return "\n".join(result)
+
+def get_convertible_bond():
+    """获取今日是否有可转债打新"""
+    df = ak.bond_zh_cov_ipo_summary()
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    # 筛选申购日期是今天的债
+    today_bonds = df[df['申购日期'] == today]
+    if today_bonds.empty:
+        return "今日无新债申购"
+    else:
+        names = today_bonds['债券简称'].tolist()
+        return f"今日打新提醒: {', '.join(names)}"
+
+def send_to_feishu(content):
     webhook_url = os.environ.get("FEISHU_WEBHOOK")
-    if not webhook_url:
-        print("❌ 未设置 FEISHU_WEBHOOK")
-        return
-
-    headers = {'Content-Type': 'application/json'}
-    payload = {"msg_type": "text", "content": {"text": message}}
-    
-    try:
-        requests.post(webhook_url, headers=headers, data=json.dumps(payload), timeout=10)
-        print("🚀 消息已推送到飞书")
-    except Exception as e:
-        print(f"❌ 推送失败: {e}")
+    msg = {
+        "msg_type": "text",
+        "content": {"text": f"📊 金融市场监控报表\n{'-'*20}\n{content}\n{'-'*20}\n时间: {datetime.datetime.now()}"}
+    }
+    requests.post(webhook_url, json=msg)
 
 if __name__ == "__main__":
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
     try:
-        price, source_name = get_bitcoin_price()
-        msg = (f"🔔 比特币价格早报\n"
-               f"------------------\n"
-               f"当前价格: ${price} USD\n"
-               f"数据来源: {source_name}\n"
-               f"获取时间: {now} (UTC)\n"
-               f"------------------\n"
-               f"注：来自 GitHub Actions 自动推送")
+        reports = []
+        reports.append(f"【加密货币】\n{get_crypto()}")
+        reports.append(f"\n【大宗商品】\n{get_commodities()}")
+        reports.append(f"\n【A 股指数】\n{get_a_shares()}")
+        reports.append(f"\n【打新提醒】\n{get_convertible_bond()}")
+        
+        full_report = "\n".join(reports)
+        print(full_report)
+        send_to_feishu(full_report)
     except Exception as e:
-        msg = f"❌ 比特币任务运行失败\n时间: {now}\n错误原因: {str(e)}"
-
-    print(msg)
-    send_to_feishu(msg)
+        print(f"运行出错: {e}")
