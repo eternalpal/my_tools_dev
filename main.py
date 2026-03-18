@@ -1,117 +1,106 @@
 import requests
 import os
-import json
 import datetime
 import yfinance as yf
 import akshare as ak
+import pandas as pd
+import time
 
 def get_crypto(symbol="ETH"):
-    """获取加密货币价格，增加多源备份"""
-    print(f"正在获取 {symbol} 价格...")
-    # 源1: 币安
-    try:
-        url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}USDT"
-        res = requests.get(url, timeout=10).json()
-        if 'price' in res:
-            return f"{symbol}: ${round(float(res['price']), 2)} (Binance)"
-    except:
-        pass
-    
-    # 源2: Coinbase (对 GitHub Actions 极其友好)
+    """加密货币：优先 Coinbase (最稳)"""
     try:
         url = f"https://api.coinbase.com/v2/prices/{symbol}-USD/spot"
         res = requests.get(url, timeout=10).json()
         return f"{symbol}: ${res['data']['amount']} (Coinbase)"
-    except Exception as e:
-        return f"{symbol}: 获取失败 ({e})"
+    except:
+        return f"{symbol}: 获取失败"
 
 def get_commodities():
-    """获取白银和原油价格 (Yahoo Finance)"""
-    print("正在获取大宗商品数据...")
+    """大宗商品：Yahoo Finance"""
     try:
-        # SI=F 白银, CL=F 原油
         tickers = yf.Tickers('SI=F CL=F')
-        silver_price = tickers.tickers['SI=F'].fast_info['lastPrice']
-        oil_price = tickers.tickers['CL=F'].fast_info['lastPrice']
-        return f"白银: ${round(silver_price, 3)} | 原油: ${round(oil_price, 2)}"
-    except Exception as e:
-        return f"大宗商品获取失败: {e}"
+        silver = tickers.tickers['SI=F'].fast_info['lastPrice']
+        oil = tickers.tickers['CL=F'].fast_info['lastPrice']
+        return f"白银: ${round(silver, 3)} | 原油: ${round(oil, 2)}"
+    except:
+        return "大宗商品获取失败"
 
 def get_a_shares():
-    """获取 A 股指数 (AkShare)"""
-    print("正在获取 A 股指数...")
+    """A股指数：东财 vs 新浪 (双备份)"""
+    # 方案1: 东方财富
     try:
-        df = ak.stock_zh_index_spot() 
-        target_indices = {"000905": "中证500", "399006": "创业板指", "000688": "科创50"}
+        df = ak.stock_zh_index_spot_em(symbol="沪深重要指数")
+        targets = {"中证500": "中证500", "创业板指": "创业板指", "科创50": "科创50"}
         result = []
-        for code, name in target_indices.items():
-            # 兼容性处理：防止代码匹配不到
-            row = df[df['代码'].str.contains(code)]
+        for name in targets.values():
+            row = df[df['名称'] == name]
             if not row.empty:
-                price = row['最新价'].values[0]
-                change_pct = row['涨跌幅'].values[0]
-                result.append(f"{name}: {price} ({change_pct}%)")
-        return "\n".join(result) if result else "未匹配到 A 股指数数据"
-    except Exception as e:
-        return f"A 股数据获取失败: {e}"
+                result.append(f"{name}: {row['最新价'].values[0]} ({row['涨跌幅'].values[0]}%)")
+        if result: return "\n".join(result)
+    except:
+        print("东财指数接口失效，尝试新浪...")
+    
+    # 方案2: 新浪财经 (历史最稳接口)
+    try:
+        indices = {"sh000905": "中证500", "sz399006": "创业板指", "sh000688": "科创50"}
+        result = []
+        for code, name in indices.items():
+            df = ak.stock_zh_index_daily(symbol=code)
+            last_row = df.iloc[-1]
+            result.append(f"{name}: {last_row['close']}")
+        return "\n".join(result) + " (Sina)"
+    except:
+        return "A股指数所有接口均失败"
 
 def get_convertible_bond():
-    """获取今日是否有可转债打新"""
-    print("正在检查可转债...")
+    """可转债打新：同花顺 vs 东财 (双备份)"""
+    # 获取北京日期格式 YYYY-MM-DD
+    bj_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+    bj_today_str = bj_now.strftime("%Y-%m-%d")
+    
+    # 方案1: 同花顺源 (对应你截图的页面)
     try:
-        df = ak.bond_zh_cov_ipo_summary()
-        # 获取北京时间 (UTC+8)
-        bj_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d")
-        today_bonds = df[df['申购日期'] == bj_time]
-        if today_bonds.empty:
-            return "今日无新债申购"
-        else:
-            names = today_bonds['债券简称'].tolist()
-            return f"🔔 今日打新提醒: {', '.join(names)}"
+        print("尝试同花顺新债接口...")
+        df = ak.bond_zh_cov_info_ths()
+        # 统一转化日期并筛选
+        df['申购日期'] = pd.to_datetime(df['申购日期'], errors='coerce').dt.strftime('%Y-%m-%d')
+        target = df[df['申购日期'] == bj_today_str]
+        if not target.empty:
+            return f"🔔 今日打新提醒: {', '.join(target['债券简称'].tolist())} (THS)"
     except Exception as e:
-        return f"可转债数据获取失败: {e}"
+        print(f"同花顺接口失败: {e}")
+
+    # 方案2: 东方财富源 (备份)
+    try:
+        print("尝试东财新债接口...")
+        df = ak.bond_cov_comparison()
+        df['申购日期'] = pd.to_datetime(df['申购日期'], errors='coerce').dt.strftime('%Y-%m-%d')
+        target = df[df['申购日期'] == bj_today_str]
+        if not target.empty:
+            return f"🔔 今日打新提醒: {', '.join(target['证券简称'].tolist())} (EM)"
+    except Exception as e:
+        print(f"东财接口失败: {e}")
+
+    return "今日无新债申购"
 
 def send_to_feishu(content):
     webhook_url = os.environ.get("FEISHU_WEBHOOK")
-    if not webhook_url:
-        print("❌ 未设置 FEISHU_WEBHOOK")
-        return
-    
-    # 获取当前北京时间显示在报表里
-    bj_now = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
-    
+    if not webhook_url: return
+    bj_now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
     msg = {
         "msg_type": "text",
-        "content": {
-            "text": f"📊 金融市场监控报表\n{'-'*25}\n{content}\n{'-'*25}\n推送时间(北京): {bj_now}"
-        }
+        "content": {"text": f"📊 金融监控报表\n{'-'*25}\n{content}\n{'-'*25}\n时间(北京): {bj_now_str}"}
     }
-    r = requests.post(webhook_url, json=msg)
-    print(f"飞书推送结果: {r.status_code}")
+    requests.post(webhook_url, json=msg, timeout=10)
 
 if __name__ == "__main__":
-    # 分段收集，每一段都包在 try-except 里，确保某一部分挂了不影响其他部分显示
-    results = []
-    
-    # 1. 加密货币
-    results.append("【加密货币】")
-    results.append(get_crypto("BTC"))
-    results.append(get_crypto("ETH"))
-    
-    # 2. 大宗商品
-    results.append("\n【大宗商品】")
-    results.append(get_commodities())
-    
-    # 3. A 股指数
-    results.append("\n【A 股指数】")
-    results.append(get_a_shares())
-    
-    # 4. 打新提醒
-    results.append("\n【申购提醒】")
-    results.append(get_convertible_bond())
-    
+    print("开始任务运行...")
+    results = [
+        "【加密货币】", get_crypto("BTC"), get_crypto("ETH"),
+        "\n【大宗商品】", get_commodities(),
+        "\n【A 股指数】", get_a_shares(),
+        "\n【申购提醒】", get_convertible_bond()
+    ]
     full_report = "\n".join(results)
-    print("\n--- 生成的报表 ---\n")
-    print(full_report)
-    
+    print("\n" + full_report)
     send_to_feishu(full_report)
