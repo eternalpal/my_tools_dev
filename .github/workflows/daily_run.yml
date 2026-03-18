@@ -1,21 +1,27 @@
 name: Financial Market Monitor
 
 on:
-  # 支持手动运行
+  # 允许手动触发运行
   workflow_dispatch: 
-  # 定时运行
+  
+  # 定时任务触发
   schedule:
-    # 这里的 cron 表达式需要特别注意（UTC 时间）
-    # 北京时间 15:10 (A股收盘后) = UTC 07:10
-    - cron: '10 7 * * 1-5'
-    # 如果你想早上 09:00 (开盘前看加密货币和原油) 再跑一次
-    # 北京时间 09:00 = UTC 01:00
-    - cron: '0 1 * * 1-5'
+    # 1. 北京时间 07:30 (UTC 23:30)
+    - cron: '30 23 * * *'
+    
+    # 2. 北京时间 12:00 (UTC 04:00)
+    - cron: '0 4 * * *'
+    
+    # 3. 北京时间 15:30 (UTC 07:30)
+    - cron: '30 7 * * *'
+    
+    # 4. 北京时间 21:00 (UTC 13:00)
+    - cron: '0 13 * * *'
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,20 +30,17 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          # 开启缓存（可选）：如果后续运行觉得安装库太慢，可以配置缓存提高速度
-          # cache: 'pip' 
+          # ✨ 开启 pip 缓存，如果 requirements.txt 没变，安装速度会极大提升
+          cache: 'pip' 
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          # 直接在这里安装所有需要的库
-          # akshare 依赖 pandas，yfinance 依赖 lxml 等，直接写主要库即可
-          pip install requests akshare yfinance pandas
-
+          # 💡 以后只需维护仓库里的 requirements.txt 即可
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          
       - name: Run Financial Monitor
         env:
-          # 确保这里的变量名和你 GitHub Secrets 里填的一致
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: |
-          # 运行你的集成监控脚本
           python main.py
