@@ -102,6 +102,7 @@ if __name__ == "__main__":
         "【加密货币】",
         get_intl_data("BTC-USD", "BTC"),
         get_intl_data("ETH-USD", "ETH"),
+        get_intl_data("SOL-USD", "SOL"),
         "\n【大宗商品】",
         get_intl_data("GC=F", "黄金"),
         get_intl_data("SI=F", "白银"),
