@@ -4,13 +4,13 @@ on:
   # 支持手动运行
   workflow_dispatch: 
   # 定时运行
-  schedule:
+  #schedule:
     # 这里的 cron 表达式需要特别注意（UTC 时间）
     # 北京时间 15:10 (A股收盘后) = UTC 07:10
-    - cron: '10 7 * * 1-5'
+    #- cron: '10 7 * * 1-5'
     # 如果你想早上 09:00 (开盘前看加密货币和原油) 再跑一次
     # 北京时间 09:00 = UTC 01:00
-    - cron: '0 1 * * 1-5'
+    #- cron: '0 1 * * 1-5'
 
 jobs:
   monitor:
