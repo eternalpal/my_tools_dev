@@ -2,75 +2,70 @@ import requests
 import os
 import datetime
 import yfinance as yf
-import akshare as ak
 import pandas as pd
+import re
 
 def get_beijing_time():
-    """获取北京时间对象"""
+    """获取北京时间"""
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
 
-def get_single_market_data(ticker_code, name):
+def get_intl_data(ticker_code, name):
     """
-    单个获取市场数据，解决 NaN 问题
+    通过 yfinance 获取最新价格和准确的昨收价计算涨跌幅
     """
-    print(f"正在获取 {name} ({ticker_code}) 数据...")
+    print(f"正在同步 {name}...")
     try:
         tk = yf.Ticker(ticker_code)
-        # 获取最近5天数据，确保能拿到至少2个有效交易日
-        df = tk.history(period="5d")
+        # 获取 fast_info 数据，这包含交易所定义的昨收价
+        info = tk.fast_info
         
-        if len(df) < 2:
-            return f"{name}: 数据不足"
-            
-        # 剔除空值并取最后两行
-        df = df.dropna(subset=['Close'])
-        current_price = df['Close'].iloc[-1]
-        prev_price = df['Close'].iloc[-2]
+        current_price = info['last_price']
+        prev_close = info['previous_close']
         
-        change_pct = (current_price - prev_price) / prev_price * 100
+        if not current_price or not prev_close:
+            # 如果 fast_info 为空，退回到 history 获取
+            hist = tk.history(period="2d")
+            current_price = hist['Close'].iloc[-1]
+            prev_close = hist['Close'].iloc[-2]
+
+        change_pct = (current_price - prev_close) / prev_close * 100
         direction = "📈" if change_pct >= 0 else "📉"
         
-        # 价格保留两位，白银和原油特殊处理
-        price_fmt = f"{current_price:.3f}" if "SI=F" in ticker_code else f"{current_price:.2f}"
-        
-        return f"{name}: ${price_fmt} ({direction}{change_pct:+.2f}%)"
+        # 价格精度格式化
+        p_fmt = f"{current_price:.3f}" if "SI=F" in ticker_code else f"{current_price:.2f}"
+        return f"{name}: ${p_fmt} ({direction}{change_pct:+.2f}%)"
     except Exception as e:
-        print(f"{name} 获取失败: {e}")
         return f"{name}: 获取失败"
 
 def get_a_shares():
-    """A股指数：改用新浪财经接口 (Sina)"""
-    print("正在获取A股指数 (Sina)...")
-    indices = {
-        "sh000905": "中证500",
-        "sz399006": "创业板指",
-        "sh000688": "科创50"
-    }
-    res = []
+    """
+    直接请求新浪财经 API 获取 A 股实时数据 (最准确、防封锁)
+    """
+    print("正在同步 A 股指数...")
+    # s_sh000905 中证500, s_sz399006 创业板, s_sh000688 科创50
+    codes = "s_sh000905,s_sz399006,s_sh000688"
+    url = f"http://hq.sinajs.cn/list={codes}"
+    headers = {"Referer": "http://finance.sina.com.cn"} # 新浪必须带 referer
+    
     try:
-        for code, name in indices.items():
-            # 获取最近2日行情
-            df = ak.stock_zh_index_daily(symbol=code)
-            if df.empty: continue
-            
-            curr_row = df.iloc[-1]
-            prev_row = df.iloc[-2]
-            
-            curr_price = float(curr_row['close'])
-            prev_price = float(prev_row['close'])
-            
-            change_pct = (curr_price - prev_price) / prev_price * 100
-            dir_icon = "📈" if change_pct >= 0 else "📉"
-            res.append(f"{name}: {curr_price:.2f} ({dir_icon}{change_pct:+.2f}%)")
-        
-        return "\n".join(res) if res else "A股数据为空"
+        response = requests.get(url, headers=headers, timeout=10)
+        text = response.text
+        # 解析数据，示例: var hq_str_s_sh000905="中证500,5322.84,18.23,0.34,1234,5678";
+        matches = re.findall(r'"(.*?)"', text)
+        results = []
+        for match in matches:
+            data = match.split(',')
+            name, price, _, change_pct = data[0], data[1], data[2], data[3]
+            dir_icon = "📈" if float(change_pct) >= 0 else "📉"
+            results.append(f"{name}: {float(price):.2f} ({dir_icon}{change_pct}%)")
+        return "\n".join(results)
     except Exception as e:
-        print(f"A股接口异常: {e}")
-        return "A股指数获取失败"
+        print(f"新浪接口异常: {e}")
+        return "A 股指数获取失败"
 
 def get_convertible_bond():
     """可转债打新：同花顺源"""
-    print("正在检查可转债...")
+    import akshare as ak # 仅在此处按需引入
     bj_today = get_beijing_time().strftime("%Y-%m-%d")
     try:
         df = ak.bond_zh_cov_info_ths()
@@ -87,7 +82,6 @@ def send_to_feishu(content):
     if not webhook_url: return
     
     bj_now = get_beijing_time()
-    # 按照要求修改日期头和尾部更新时间
     date_head = bj_now.strftime("%Y年%m月%d日")
     full_time_str = bj_now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -101,28 +95,21 @@ def send_to_feishu(content):
 
     msg = {"msg_type": "text", "content": {"text": full_msg}}
     requests.post(webhook_url, json=msg, timeout=15)
-    print("消息已发送")
 
 if __name__ == "__main__":
-    # 1. 加密货币
-    crypto_list = [
-        get_single_market_data("BTC-USD", "BTC"),
-        get_single_market_data("ETH-USD", "ETH")
-    ]
-    
-    # 2. 大宗商品 (增加黄金 GC=F)
-    commodity_list = [
-        get_single_market_data("GC=F", "黄金"),
-        get_single_market_data("SI=F", "白银"),
-        get_single_market_data("CL=F", "原油")
-    ]
-    
-    # 3. 组装内容
-    report = [
+    # 国际市场数据 (yfinance 使用交易所定义的昨收价)
+    intl_list = [
         "【加密货币】",
-        "\n".join(crypto_list),
+        get_intl_data("BTC-USD", "BTC"),
+        get_intl_data("ETH-USD", "ETH"),
         "\n【大宗商品】",
-        "\n".join(commodity_list),
+        get_intl_data("GC=F", "黄金"),
+        get_intl_data("SI=F", "白银"),
+        get_intl_data("CL=F", "原油")
+    ]
+    
+    report = [
+        "\n".join(intl_list),
         "\n【A 股指数】",
         get_a_shares(),
         "\n【申购提醒】",
@@ -130,5 +117,5 @@ if __name__ == "__main__":
     ]
     
     final_report = "\n".join(report)
-    print("\n--- 最终预览 ---\n" + final_report)
+    print(final_report)
     send_to_feishu(final_report)
