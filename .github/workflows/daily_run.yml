@@ -5,7 +5,7 @@ on:
   workflow_dispatch: 
   
   # 定时任务触发
-  schedule:
+  #schedule:
     # 1. 北京时间 07:30 (UTC 23:30)
     #- cron: '30 23 * * *'
     
