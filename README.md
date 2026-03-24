@@ -80,3 +80,9 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 
 ### ⚖️ 免责声明
 本工具仅供学习交流使用，所提供数据来源于公开网络，不构成任何投资建议。投资有风险，入市需谨慎。
+
+## 04 GIF-FFmpeg-Optimizer-Generator
+
+一个纯前端实现的 GIF 优化（FFmpeg）命令生成器。无需上传文件，本地解析 GIF 属性，自动生成最高画质的 FFmpeg 压缩命令。
+
+[详细介绍](GIF-FFmpeg-Optimizer-Generator/)
