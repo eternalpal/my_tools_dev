@@ -1,7 +1,9 @@
 # 小学作文格子纸排版工具 (Composition Grid Generator)
 
-[工具截图](./shots01.jpg)
-[工具截图](./shots02.jpg)
+<p align="center">
+	<img src="shots01.jpg" alt="Composition Grid Generator Preview 01" style="height: 320px; margin-right: 12px;" />
+	<img src="shots02.jpg" alt="Composition Grid Generator Preview 02" style="height: 320px; margin-right: 12px;" />
+</p>
 
 ## 1. 项目背景
 

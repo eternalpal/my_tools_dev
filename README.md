@@ -91,8 +91,11 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 
 响应学校语文老师的教学倡议而开发一个作文排版工具，实现在格子纸中快速排版作文。
 
-[工具截图](Composition_Grid_Generator/shots01.jpg)
-[工具截图](Composition_Grid_Generator/shots02.jpg)
+<p align="center">
+	<img src="Composition_Grid_Generator/shots01.jpg" alt="Composition Grid Generator Preview 01" style="height: 320px; margin-right: 12px;" />
+	<img src="Composition_Grid_Generator/shots02.jpg" alt="Composition Grid Generator Preview 02" style="height: 320px; margin-right: 12px;" />
+</p>
+
 
 [详细介绍](Composition_Grid_Generator/)
 
