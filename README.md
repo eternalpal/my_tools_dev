@@ -86,3 +86,13 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 一个纯前端实现的 GIF 优化（FFmpeg）命令生成器。无需上传文件，本地解析 GIF 属性，自动生成最高画质的 FFmpeg 压缩命令。
 
 [详细介绍](GIF-FFmpeg-Optimizer-Generator/)
+
+## 05 小学作文格子纸排版工具 (Composition Grid Generator)
+
+响应学校语文老师的教学倡议而开发一个作文排版工具，实现在格子纸中快速排版作文。
+
+[工具截图](Composition_Grid_Generator/shots01.jpg)
+[工具截图](Composition_Grid_Generator/shots02.jpg)
+
+[详细介绍](Composition_Grid_Generator/)
+

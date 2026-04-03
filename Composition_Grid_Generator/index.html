@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>小学作文格子纸排版工具</title>
+    <!-- 引入 jsPDF 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #eef2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            height: 90vh;
+        }
+        .control-panel {
+            flex: 0 0 380px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .preview-panel {
+            flex: 1;
+            background: #d4d7db;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        textarea {
+            flex: 1;
+            width: 100%;
+            min-height: 180px;
+            padding: 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 6px;
+            resize: vertical;
+            font-size: 15px;
+            line-height: 1.6;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 12px 0;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .btn-generate { background-color: #10b981; }
+        .btn-pdf { background-color: #ef4444; }
+        .btn-img { background-color: #f59e0b; }
+        .btn-word { background-color: #3b82f6; }
+        
+        .canvas-page {
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 100%;
+            height: auto;
+            width: 75%; /* 预览缩放比例 */
+        }
+        h1 { margin-top: 0; color: #1f2937; font-size: 22px; margin-bottom: 10px;}
+        
+        /* 使用说明区块样式 */
+        .instruction-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .instruction-box h3 { margin: 0 0 10px 0; font-size: 15px; color: #1e293b; }
+        .instruction-box ul { margin: 0; padding-left: 20px; color: #475569; font-size: 13px; line-height: 1.6; }
+        .instruction-box li { margin-bottom: 6px; }
+        .instruction-box strong { color: #2563eb; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h1>小学作文格子纸排版工具</h1>
+        <p style="font-size:14px; color:#666; margin-top: 0;">纸张规格：每页 15格 × 20行 (共300格)</p>
+        
+        <textarea id="inputText" placeholder="请在此输入作文内容..."></textarea>
+        
+        <div class="btn-group">
+            <button class="btn-generate" onclick="generateLayout()">1. 预览排版 (自动处理格式)</button>
+            <button class="btn-pdf" onclick="exportPDF()">2. 导出 PDF (适合A4打印)</button>
+            <button class="btn-img" onclick="exportImage()">3. 导出长图 (适合手机查看)</button>
+            <button class="btn-word" onclick="exportWord()">4. 导出 Word (防错位版)</button>
+        </div>
+        
+        <!-- 更新后的使用说明区 -->
+        <div class="instruction-box">
+            <h3>📖 使用说明</h3>
+            <ul>
+                <li><strong>文字输入：</strong>在上方输入文字。系统会自动将【第一段】居中作为标题；从【第二段】起，自动在段首缩进两格。</li>
+                <li><strong>智能排版：</strong>自动遵循中文“避头尾”规则，逗号、句号等标点绝对不会出现在每行的第一个格子里。系统每满 100 格会自动进行标记。</li>
+                <li><strong>按钮 1：</strong>输入完毕后点击此按钮，系统会自动分配多页生成预览图。</li>
+                <li><strong>按钮 2：</strong>极速生成 A4 尺寸的多页 PDF 文件，画质高清且体积极小，直接发给打印机即可。</li>
+                <li><strong>按钮 3：</strong>将多页作文上下无缝拼接成一张长图片下载，方便在微信或手机中滑动查阅。</li>
+                <li><strong>按钮 4：</strong>为防止网格变形，系统会将排版好的高清图片分页嵌入到 Word 文档中导出。</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="preview-panel" id="previewContainer">
+        <p style="color: #666; margin-top: 200px;">点击左侧“预览排版”在此查看效果</p>
+    </div>
+
+    <script>
+        // --- 核心参数配置 ---
+        const A4_WIDTH = 1050;   
+        const A4_HEIGHT = 1485;  
+        const PADDING_X = 60;    
+        const PADDING_Y = 80;    
+        
+        const COL_COUNT = 15;    // 每行 15 格
+        const ROW_COUNT = 20;    // 【修改点】每页 20 行，总计 300 格
+        const ROW_GAP = 15;      // 行间距
+        const CORRECTION_WIDTH = 180; // 右侧修正栏宽度
+        
+        const CONTENT_WIDTH = A4_WIDTH - PADDING_X * 2;
+        const GRID_AREA_WIDTH = CONTENT_WIDTH - CORRECTION_WIDTH;
+        const BOX_SIZE = GRID_AREA_WIDTH / COL_COUNT; 
+
+        // 避头尾规则
+        const FORBIDDEN_START_CHARS = /^[，。、；：？！”’》】\]\)\}.,?!;:]$/;
+
+        let pageCanvases = [];
+        let totalPagesCreated = 0;
+
+        window.onload = () => {
+            generateLayout();
+        };
+
+        function createNewPage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = A4_WIDTH;
+            canvas.height = A4_HEIGHT;
+            canvas.className = 'canvas-page';
+            const ctx = canvas.getContext('2d');
+            
+            drawEmptyGrid(ctx, totalPagesCreated);
+            totalPagesCreated++;
+            
+            document.getElementById('previewContainer').appendChild(canvas);
+            pageCanvases.push(canvas);
+            
+            return ctx;
+        }
+
+        function drawEmptyGrid(ctx, pageIndex) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+            
+            ctx.strokeStyle = '#999999';
+            ctx.lineWidth = 1.5;
+            
+            let startX = PADDING_X;
+            let startY = PADDING_Y;
+
+            // 1. 遍历绘制所有的正方格子，并同时处理字数标记
+            for (let r = 0; r < ROW_COUNT; r++) {
+                let currentY = startY + r * (BOX_SIZE + ROW_GAP);
+                
+                for (let c = 0; c < COL_COUNT; c++) {
+                    let currentX = startX + c * BOX_SIZE;
+                    ctx.strokeRect(currentX, currentY, BOX_SIZE, BOX_SIZE);
+
+                    // 计算当前格子的物理总序号
+                    let globalGridIndex = pageIndex * (ROW_COUNT * COL_COUNT) + (r * COL_COUNT + c) + 1;
+                    
+                    // 每逢 100 的倍数标记
+                    if (globalGridIndex % 100 === 0) {
+                        ctx.fillStyle = '#bbbbbb'; 
+                        ctx.font = '12px "Arial", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        
+                        let textX = currentX + BOX_SIZE / 2;
+                        let textY = currentY + BOX_SIZE + (ROW_GAP / 2);
+                        
+                        ctx.fillText(globalGridIndex.toString(), textX, textY);
+                    }
+                }
+            }
+
+            // 2. 绘制右侧“修正栏”表头
+            let headerHeight = BOX_SIZE + ROW_GAP;
+            ctx.strokeRect(startX + GRID_AREA_WIDTH, startY, CORRECTION_WIDTH, headerHeight);
+            
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("修 正 栏", startX + GRID_AREA_WIDTH + CORRECTION_WIDTH / 2, startY + headerHeight / 2);
+            
+            // 3. 绘制右侧下方的【合并大框】
+            let blankBoxTopY = startY + headerHeight; 
+            let totalHeight = ROW_COUNT * BOX_SIZE + (ROW_COUNT - 1) * ROW_GAP;
+            let blankBoxHeight = totalHeight - headerHeight;
+            ctx.strokeRect(startX + GRID_AREA_WIDTH, blankBoxTopY, CORRECTION_WIDTH, blankBoxHeight);
+        }
+
+        function generateLayout() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            pageCanvases = [];
+            totalPagesCreated = 0; 
+            
+            let rawText = document.getElementById('inputText').value;
+            if (!rawText.trim()) {
+                createNewPage();
+                return;
+            }
+
+            let gridCells = [];
+            let paragraphs = rawText.split('\n');
+            let isFirstPara = true;
+
+            for (let i = 0; i < paragraphs.length; i++) {
+                let para = paragraphs[i].replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
+                if (para === '') continue;
+
+                while (gridCells.length % COL_COUNT !== 0) {
+                    gridCells.push("");
+                }
+
+                if (isFirstPara) {
+                    if (para.length < COL_COUNT) {
+                        let emptySpaces = Math.floor((COL_COUNT - para.length) / 2);
+                        for (let s = 0; s < emptySpaces; s++) gridCells.push("");
+                    }
+                    for (let c = 0; c < para.length; c++) gridCells.push(para[c]);
+                    isFirstPara = false;
+                } else {
+                    gridCells.push("");
+                    gridCells.push("");
+
+                    for (let c = 0; c < para.length; c++) {
+                        let char = para[c];
+                        let isLineStart = (gridCells.length % COL_COUNT === 0);
+
+                        if (isLineStart && FORBIDDEN_START_CHARS.test(char) && gridCells.length > 0) {
+                            gridCells[gridCells.length - 1] += char;
+                        } else {
+                            gridCells.push(char);
+                        }
+                    }
+                }
+            }
+
+            let currentFont = '26px "Kaiti", "KaiTi_GB2312", "STKaiti", serif';
+            let cellsPerPage = COL_COUNT * ROW_COUNT;
+            let totalPages = Math.ceil(gridCells.length / cellsPerPage);
+
+            for (let p = 0; p < totalPages; p++) {
+                let ctx = createNewPage();
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                let startIndex = p * cellsPerPage;
+                let endIndex = Math.min(startIndex + cellsPerPage, gridCells.length);
+
+                for (let i = startIndex; i < endIndex; i++) {
+                    let cellText = gridCells[i];
+                    if (!cellText) continue;
+
+                    let pageIndex = i - startIndex;
+                    let r = Math.floor(pageIndex / COL_COUNT);
+                    let c = pageIndex % COL_COUNT;
+
+                    let x = PADDING_X + c * BOX_SIZE + BOX_SIZE / 2;
+                    let y = PADDING_Y + r * (BOX_SIZE + ROW_GAP) + BOX_SIZE / 2;
+
+                    if (cellText.length === 1) {
+                        ctx.font = currentFont;
+                        ctx.fillText(cellText, x, y);
+                    } else {
+                        ctx.font = currentFont;
+                        ctx.fillText(cellText[0], x, y);
+                        let puncs = cellText.substring(1);
+                        ctx.font = '18px "Microsoft YaHei"';
+                        ctx.fillText(puncs, x + BOX_SIZE * 0.35, y + BOX_SIZE * 0.25);
+                    }
+                }
+            }
+        }
+
+        function exportPDF() {
+            if (pageCanvases.length === 0) return alert("请先生成排版！");
+            
+            const btn = document.querySelector('.btn-pdf');
+            btn.innerText = "正在生成 PDF...";
+            
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+
+                pageCanvases.forEach((canvas, index) => {
+                    const imgData = canvas.toDataURL('image/jpeg', 0.75);
+                    if (index > 0) pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                });
+                pdf.save('作文排版.pdf');
+                btn.innerText = "2. 导出 PDF (适合A4打印)";
+            }, 100);
+        }
+
+        function exportImage() {
+            if (pageCanvases.length === 0) return alert("请先生成排版！");
+            
+            const bigCanvas = document.createElement('canvas');
+            bigCanvas.width = A4_WIDTH;
+            bigCanvas.height = A4_HEIGHT * pageCanvases.length;
+            const bigCtx = bigCanvas.getContext('2d');
+            
+            pageCanvases.forEach((canvas, index) => {
+                bigCtx.drawImage(canvas, 0, index * A4_HEIGHT);
+            });
+            
+            const imgData = bigCanvas.toDataURL('image/jpeg', 0.85);
+            
+            const link = document.createElement('a');
+            link.href = imgData;
+            link.download = '作文排版_长图.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportWord() {
+            if (pageCanvases.length === 0) return alert("请先生成排版！");
+            let imagesHtml = '';
+            pageCanvases.forEach((canvas) => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                imagesHtml += `
+                    <div style="page-break-after: always; text-align: center;">
+                        <img src="${imgData}" width="700" />
+                    </div>
+                `;
+            });
+            const wordHtml = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><meta charset='utf-8'><title>导出文档</title></head>
+                <body style="margin:0; padding:0;">${imagesHtml}</body>
+                </html>
+            `;
+            const blob = new Blob([wordHtml], { type: 'application/msword;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '作文排版.doc';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
