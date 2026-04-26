@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Github 开源周报提取工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0; padding: 20px; color: #333;
+        }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .desc { text-align: center; color: #7f8c8d; margin-bottom: 20px; font-size: 14px; }
+        .container { display: flex; gap: 20px; height: 75vh; }
+        .box { flex: 1; display: flex; flex-direction: column; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .header { font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #34495e; }
+        textarea {
+            flex: 1; padding: 12px; font-family: 'Courier New', Courier, monospace; 
+            font-size: 14px; border: 1px solid #dcdcdc; border-radius: 4px; resize: none; background: #fafafa;
+        }
+        textarea:focus { outline: none; border-color: #3498db; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button {
+            flex: 1; padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer;
+            border: none; border-radius: 4px; color: white; transition: 0.3s;
+        }
+        .btn-extract { background-color: #2ecc71; }
+        .btn-extract:hover { background-color: #27ae60; }
+        .btn-copy { background-color: #3498db; }
+        .btn-copy:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <h2>⚡ 开源周报 Markdown 批量一键生成器</h2>
+    <div class="desc">纯本地提取，匹配固定的「项目简介」和「功能特性」。多篇文章请用 <strong>@@@@@@@@@@</strong> (连续@符号) 隔开。</div>
+
+    <div class="container">
+        <!-- 左侧输入区 -->
+        <div class="box">
+            <div class="header">📥 待提取原文输入区：</div>
+            <textarea id="inputText" placeholder="请在此处粘贴待提取的文章内容...&#10;&#10;多篇提取请在两篇文章中间输入 @@@@@@@@@@ 隔开"></textarea>
+            <div class="btn-group">
+                <button class="btn-extract" onclick="processText()">一键提取并生成</button>
+            </div>
+        </div>
+
+        <!-- 右侧输出区 -->
+        <div class="box">
+            <div class="header">📤 生成的 Markdown 源码：</div>
+            <textarea id="outputText" readonly placeholder="提取结果将显示在这里..."></textarea>
+            <div class="btn-group">
+                <button class="btn-copy" onclick="copyResult()">一键复制源码</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function processText() {
+            const inputText = document.getElementById('inputText').value;
+            if (!inputText.trim()) {
+                alert("请输入待提取的文本内容！");
+                return;
+            }
+
+            // 1. 根据多个 @ 符号将文本切分为多篇文章 (匹配5个及以上的@)
+            const articles = inputText.split(/@{5,}/);
+            const validArticles = articles.filter(a => a.trim().length > 0);
+
+            if (validArticles.length === 0) {
+                alert("没有找到有效的内容！");
+                return;
+            }
+
+            let tocList =[];
+            let bodyContent = "";
+
+            // 2. 遍历每一篇文章进行精准正则提取
+            validArticles.forEach((article, index) => {
+                const numStr = (index + 1).toString().padStart(2, '0'); // 生成 01, 02...
+                
+                // 提取 Github URL
+                let ghUrl = "未找到Github地址";
+                let projectName = "未知项目";
+                const ghMatch = article.match(/https?:\/\/github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/);
+                if (ghMatch) {
+                    ghUrl = ghMatch[0];
+                    const urlParts = ghUrl.split('/');
+                    projectName = urlParts[urlParts.length - 1]; // 拿最后一段作为项目名
+                }
+
+                // 提取【项目简介】段落（向下查找到下一个 ## 或文章结尾）
+                let introText = "";
+                const introMatch = article.match(/##\s*项目简介\s*([\s\S]*?)(?=\n##\s|$)/);
+                if (introMatch) {
+                    introText = introMatch[1].trim();
+                }
+
+                // 提取【功能特性】段落（兼容"功能特性"和"核心功能特性"）
+                let featureText = "";
+                const featureMatch = article.match(/##\s*(?:核心)?功能特性\s*([\s\S]*?)(?=\n##\s|$)/);
+                if (featureMatch) {
+                    // 按照需求，把二级变为三级标题拼接
+                    featureText = "### 核心功能特性\n" + featureMatch[1].trim();
+                }
+
+                // 合并两部分内容
+                let extractedDesc = "";
+                if (introText || featureText) {
+                    // 过滤掉空部分，并用双换行符拼接
+                    extractedDesc = [introText, featureText].filter(Boolean).join("\n\n");
+                } else {
+                    extractedDesc = "> [提取失败] 原文中未找到匹配的 '## 项目简介' 或 '## 功能特性' 标记。";
+                }
+
+                // 生成单篇的内容模板
+                const itemTpl = `## ${numStr} ${projectName}\n\n${extractedDesc}\n\n\`\`\`text\n${ghUrl}\n\`\`\`     \n&nbsp; &nbsp;\n&nbsp; &nbsp;\n&nbsp; &nbsp;\n\n`;
+                bodyContent += itemTpl;
+                tocList.push(`- ${index + 1}.${projectName}`);
+            });
+
+            // 3. 拼装最终结构
+            const totalCount = validArticles.length;
+            const finalTpl = `本周 ${totalCount} 个火火火的Github开源项目！
+
+项目目录：
+
+${tocList.join('\n')}
+...
+
+&nbsp; &nbsp;
+&nbsp; &nbsp;
+&nbsp; &nbsp;
+
+${bodyContent}`;
+
+            // 4. 输出到右侧
+            document.getElementById('outputText').value = finalTpl;
+        }
+
+        // 复制功能
+        function copyResult() {
+            const outputText = document.getElementById('outputText');
+            if (!outputText.value) {
+                alert("没有可复制的内容！");
+                return;
+            }
+            outputText.select();
+            document.execCommand('copy');
+            alert("✅ Markdown 源码复制成功！");
+        }
+    </script>
+</body>
+</html>

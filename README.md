@@ -99,3 +99,13 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 
 [详细介绍](Composition_Grid_Generator/)
 
+
+## 06 开源周报 Markdown 批量一键生成器(weekly-report-generator)
+
+[weekly-report-generator](weekly-report-generator/weekly-report-generator.html)
+
+prompt.txt文件为当时测试使用的prompt
+
+
+纯本地提取，匹配固定的「项目简介」和「功能特性」。多篇文章请用 @@@@@@@@@@ (连续@符号) 隔开。
+
