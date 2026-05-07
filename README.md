@@ -144,3 +144,13 @@ prompt.txt文件为当时测试使用的prompt
 微信文章页面（浏览器中打开），右上角自动显示复制按钮，一键复制标题+链接
 
 [详细介绍](https://github.com/eternalpal/wechat-article-copy)
+
+## 10 html批量转pdf小工具（HTMLtoPDF_Converter）
+
+一个带图形界面的批量 HTML 转 PDF 工具，基于 Python 开发，可一键把单个/多个 HTML 文件高质量转为 PDF，支持长页面、JS 渲染、自定义等待等场景。
+
+<p align="center">
+	<img src="HTMLtoPDF_Converter/shots01.png" alt="HTMLtoPDF_Converter Preview 01" style="height: 320px; margin-right: 12px;" />
+</p>
+
+[详细介绍](HTMLtoPDF_Converter/)
