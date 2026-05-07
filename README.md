@@ -121,3 +121,16 @@ prompt.txt文件为当时测试使用的prompt
 
 [详细介绍](https://github.com/eternalpal/PDF_wechat_article_author_Classifier)
 
+## 08 Logo Extractor 浏览器扩展
+
+一个用于从网页中提取Logo图片并下载的Chrome扩展。
+
+## 使用说明
+
+1. 访问任意网站
+2. 点击浏览器工具栏中的Logo Extractor图标
+3. 插件会自动扫描页面中的Logo
+4. 选择需要的Logo并点击下载按钮
+5. 可选择下载格式（PNG/JPG）和尺寸
+
+[详细介绍](https://github.com/eternalpal/logo-extractor)
