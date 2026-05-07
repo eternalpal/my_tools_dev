@@ -10,6 +10,10 @@
 
 `html-example.zip`为可供测试的样本
 
+打包好的exe文件下载地址：
+
+[HTMLtoPDF_Converter_v1.0_win](https://pan.baidu.com/s/1JIRwy8KTie5LtWXYqk419Q?pwd=4wap )
+
 ---
 
 ## 一、整体功能
