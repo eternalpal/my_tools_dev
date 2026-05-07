@@ -86,3 +86,13 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 一个纯前端实现的 GIF 优化（FFmpeg）命令生成器。无需上传文件，本地解析 GIF 属性，自动生成最高画质的 FFmpeg 压缩命令。
 
 [详细介绍](GIF-FFmpeg-Optimizer-Generator/)
+
+## 05 PDF 按作者自动分类工具
+
+微信公众号文章PDF分类工具
+
+这是一个基于 OCR 技术的自动化脚本，专门用于处理纯图片格式的 微信公众号文章 PDF。
+
+它可以自动识别 PDF 第一页前 1/3 的作者名字，并将文件自动归类到对应的文件夹中。
+
+[详细介绍](https://github.com/eternalpal/PDF_wechat_article_author_Classifier)
