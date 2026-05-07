@@ -134,3 +134,13 @@ prompt.txt文件为当时测试使用的prompt
 5. 可选择下载格式（PNG/JPG）和尺寸
 
 [详细介绍](https://github.com/eternalpal/logo-extractor)
+
+## 09 wechat-article-copy
+
+一个用于从网页中提取“微信公众号文章的标题、URL链接”的Chrome扩展。
+
+使用：
+
+微信文章页面（浏览器中打开），右上角自动显示复制按钮，一键复制标题+链接
+
+[详细介绍](https://github.com/eternalpal/wechat-article-copy)
