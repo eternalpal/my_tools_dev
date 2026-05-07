@@ -87,7 +87,31 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 
 [详细介绍](GIF-FFmpeg-Optimizer-Generator/)
 
-## 05 PDF 按作者自动分类工具
+
+## 05 小学作文格子纸排版工具 (Composition Grid Generator)
+
+响应学校语文老师的教学倡议而开发一个作文排版工具，实现在格子纸中快速排版作文。
+
+<p align="center">
+	<img src="Composition_Grid_Generator/shots01.jpg" alt="Composition Grid Generator Preview 01" style="height: 320px; margin-right: 12px;" />
+	<img src="Composition_Grid_Generator/shots02.jpg" alt="Composition Grid Generator Preview 02" style="height: 320px; margin-right: 12px;" />
+</p>
+
+
+[详细介绍](Composition_Grid_Generator/)
+
+
+## 06 开源周报 Markdown 批量一键生成器(weekly-report-generator)
+
+[weekly-report-generator](weekly-report-generator/weekly-report-generator.html)
+
+prompt.txt文件为当时测试使用的prompt
+
+
+纯本地提取，匹配固定的「项目简介」和「功能特性」。多篇文章请用 @@@@@@@@@@ (连续@符号) 隔开。
+
+
+## 07 PDF 按作者自动分类工具
 
 微信公众号文章PDF分类工具
 
@@ -96,3 +120,4 @@ GIF-html-tool-Gemini.html - Gemini 3.0
 它可以自动识别 PDF 第一页前 1/3 的作者名字，并将文件自动归类到对应的文件夹中。
 
 [详细介绍](https://github.com/eternalpal/PDF_wechat_article_author_Classifier)
+
