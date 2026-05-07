@@ -5,8 +5,10 @@
 一个带图形界面的批量 HTML 转 PDF 工具，基于 Python 开发，可一键把单个/多个 HTML 文件高质量转为 PDF，支持长页面、JS 渲染、自定义等待等场景。
 
 <p align="center">
-	<img src="HTMLtoPDF_Converter/shots01.png" alt="HTMLtoPDF_Converter Preview 01" style="height: 320px; margin-right: 12px;" />
+	<img src="shots01.png" alt="HTMLtoPDF_Converter Preview 01" style="height: 320px; margin-right: 12px;" />
 </p>
+
+`html-example.zip`为可供测试的样本
 
 ---
 
