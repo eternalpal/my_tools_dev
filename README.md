@@ -154,3 +154,19 @@ prompt.txt文件为当时测试使用的prompt
 </p>
 
 [详细介绍](HTMLtoPDF_Converter/)
+
+## 11 m3u8视频下载skill（m3u8-decrypt-download）
+
+
+下载 m3u8 视频流并合并为 mp4，重点解决 AES-128 加密流的解密问题。当用户提供 .m3u8 链接要求下载/保存/合并成视频文件（mp4/mkv）时使用。
+
+
+[m3u8-decrypt-download](m3u8-decrypt-download/)
+
+## 12 小金公众号写作skill（kyjj-github）
+
+
+把用户给的一个或多个 GitHub 仓库地址，自动抓取内容后，重写成「小金」口吻的公众号风格开源项目推荐文章。产出包含：3 个吸睛备选标题 + 按序排列的项目简介（每个含功能、适用场景、从 README 提取的配图与项目地址）。不含开头结尾闲聊。仅输出 Markdown 文件，不额外生成 HTML。
+
+
+[kyjj-github](kyjj-github/)
