@@ -85,7 +85,9 @@ GitHub Actions 是 GitHub 提供的自动化流平台。你可以把它理解为
 *   **v1.0**：参考 `daily_stock_analysis` 完成 Actions 框架搭建。
 *   **v2.0**：修复了休市期间 yfinance 返回 `NaN` 导致涨跌幅报错的问题。
 *   **v3.0**：引入新浪财经 API 解决 A 股数据封锁问题，并优化了飞书消息的北京时间显示格式。
-
+*   **v4.0 (Current)**:
+    *   增加一个A股新股发行的内容，检索是否有新股发行，包括沪深A股各个板块，北京交易所等。
+	*   增加一个未来发行新股，新可转债的内容，用来提示未来附近时间将要发现的新股，可转债。
 ---
 
 这份内容是为你精心整理的 `Github_actions_records.md` 补遗，专门记录了使用 Cloudflare Workers 解决 GitHub 定时任务延迟的实战方案。
