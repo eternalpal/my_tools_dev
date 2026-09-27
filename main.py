@@ -247,5 +247,5 @@ if __name__ == "__main__":
     final_report = "\n".join(report)
     print("\n--- 报表预览 ---\n" + final_report + "\n")
     
-    #send_to_feishu(final_report)
+    send_to_feishu(final_report)
     print("=== 任务执行完毕 ===")
