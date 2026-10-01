@@ -230,6 +230,7 @@ if __name__ == "__main__":
         "【加密货币】",
         get_intl_data("BTC-USD", "BTC"),
         get_intl_data("ETH-USD", "ETH"),
+        get_intl_data("SOL-USD", "SOL"),
         "\n【美股指数】",
         get_intl_data("^GSPC", "标普500", is_index=True),
         get_intl_data("^IXIC", "纳斯达克", is_index=True),
